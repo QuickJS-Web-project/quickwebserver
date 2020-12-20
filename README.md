@@ -23,7 +23,7 @@ A stable version has not yet been released.
 ### How can I use it now?
 QuickJS gives us several benefits:
 * Tiny size of the engine;
-* Relatively high speed of work (benchmarks);
+* Relatively high speed of work ([benchmarks](https://bellard.org/quickjs/bench.html));
 * Ability to compile your JS application into a native binary application.
   
 Thus, you can use QuickJS and QuickWebServer to build simple microservices, APIs, or serve 
