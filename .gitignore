@@ -1,0 +1,7 @@
+c/*
+!c/webserver.c
+!c/webserver.h
+libqws.so
+node_modules
+.idea
+package-lock.json
