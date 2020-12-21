@@ -32,5 +32,12 @@ static sites.
 Ultimately, most of the work happens outside the server's area of responsibility 
 (for example, working with databases).
 
+### TODOs and known issues
+- [ ] No parsing of the request body, only raw content. Solvable in the case of `json`, but 
+  `form-data` and `x-www-form-urlencoded` are inconvenient;
+- [ ] Sending a POST request with a file larger than 1MB may cause a server crash;
+  
+_You can add to this list by opening an issue in this repository._
+
 ### Documentation
 Please see the Wiki section of this repository.
