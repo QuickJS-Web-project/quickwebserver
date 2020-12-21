@@ -1,4 +1,4 @@
-import * as WebServer from '/Users/alexeysolovjov/CODE/Github/qjs-web/webserver.shared.so'
+import * as WebServer from '../libqws.so'
 import { setTimeout, Worker } from 'os'
 import {HTTP_NOT_FOUND} from "./data/httpErrors.js";
 import createRouteHandler from "./utils/createRouteHandler.js";
@@ -19,7 +19,7 @@ export class QuickWebServer {
 
         try {
             this.tick()
-            this.worker.postMessage({ type: 'start_server', port: 3000 })
+            this.worker.postMessage({ type: 'start_server', port })
         } catch (e) {
             console.log(e)
             exit(1)
@@ -61,7 +61,6 @@ export class QuickWebServer {
             }
             const fullPath = `${deleteLastSlash(path)}/${deleteFirstSlash(wild)}`
             response.type(mime.getType(fullPath))
-            console.log(mime.getType(fullPath))
             response.sendFile(fullPath)
         }))
     }

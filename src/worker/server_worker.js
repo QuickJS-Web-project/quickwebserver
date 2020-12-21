@@ -1,4 +1,4 @@
-import { startServer } from '/Users/alexeysolovjov/CODE/Github/qjs-web/webserver.shared.so'
+import { startServer } from '../../libqws.so'
 import * as os from "os";
 
 const parent = os.Worker.parent;

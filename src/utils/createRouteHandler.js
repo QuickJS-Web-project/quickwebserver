@@ -8,7 +8,6 @@ export default function createRouteHandler(url, callback) {
         await callback(serverData, response)
         return response.__responseObject
     }
-    console.log(url)
     return  {
         pathObject,
         urlMask: url,

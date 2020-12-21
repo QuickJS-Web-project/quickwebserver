@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:shared-lib:first": "./build-shared.sh",
-    "build:shared-lib": "./rebuild-shared"
+    "build:shared-lib": "./rebuild-shared",
+    "postinstall": "./build-shared.sh"
   },
   "keywords": [],
   "author": "",

@@ -21,9 +21,9 @@ printf "Step 3. Building server shared lib\n"
 
 if [[ $PLATFORM = "Darwin" ]]
   then
-    clang -shared -undefined dynamic_lookup -DJS_SHARED_LIBRARY -o ../libqws.so webserver.c > /dev/null
+    clang -Wall -fPIC -shared -std=gnu17 -flto -L./ -lquickjs -DJS_SHARED_LIBRARY webserver.c -o ../libqws.so
   else
-    gcc -c -fPIC -o libqws.o webserver.c > /dev/null && gcc -shared -o ../libqws.so libqws.o > /dev/null
+    gcc -c -fPIC -o libqws.o webserver.c -DJS_SHARED_LIBRARY -L. -lquickjs && gcc -fPIC -shared -o ../libqws.so libqws.o
 fi
 
 printf "\nDONE!\n"
