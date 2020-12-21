@@ -1,21 +1,25 @@
-import { startServer } from '../../libqws.so'
-import * as os from "os";
+import { startServer } from '../../libqws.so';
+import { Worker } from 'os';
 
-const parent = os.Worker.parent;
+const parent = Worker.parent;
 
+/**
+ * Post message to parent process on demand
+ * @param {object} data
+ */
 function serverCallback(data) {
-    parent.postMessage({ type: 'request', data: { ...data } })
+  parent.postMessage({ type: 'request', data: { ...data } });
 }
 
-function worker_main(params) {
-    parent.onmessage = (message) => {
-        const { type } = message.data
-        switch (type) {
-            case 'start_server':
-                startServer(serverCallback, message.data.port)
-                break
-        }
+function worker_main() {
+  parent.onmessage = (message) => {
+    const { type } = message.data;
+    switch (type) {
+      case 'start_server':
+        startServer(serverCallback, message.data.port);
+        break;
     }
+  };
 }
 
-worker_main()
+worker_main();

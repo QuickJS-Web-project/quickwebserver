@@ -6,12 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:shared-lib": "./rebuild-shared",
-    "postinstall": "./build-shared.sh"
+    "postinstall": "./build-shared.sh",
+    "format": "prettier --write src/**/*.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "regexparam": "^1.3.0"
+  },
+  "devDependencies": {
+    "prettier": "^2.2.1"
   }
 }
