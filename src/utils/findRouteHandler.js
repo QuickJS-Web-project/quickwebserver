@@ -1,11 +1,11 @@
-import { exec } from './regexparam.js';
+import {exec} from './regexparam.js';
 
 export function findRouteHandler(url, handlers, httpData) {
+  const [path] = url.split('?')
   const routeObject = handlers.find((handler) => {
-    return handler.pathObject.pattern.test(url);
+    return handler.pathObject.pattern.test(path);
   });
   if (!routeObject) return null;
-  const pathData = exec(url, routeObject.pathObject);
-  httpData['params'] = pathData;
+  httpData['params'] = exec(url, routeObject.pathObject);
   return routeObject.routeHandler;
 }

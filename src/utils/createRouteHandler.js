@@ -1,5 +1,6 @@
 import { regexparam } from './regexparam.js';
 import { createEmptyResponse } from '../response/createResponse.js';
+import Request from "../request/request.js";
 
 /**
  * Create handler object for route
@@ -10,8 +11,9 @@ import { createEmptyResponse } from '../response/createResponse.js';
 export default function createRouteHandler(url, callback) {
   const pathObject = regexparam(url);
   const routeHandler = async (serverData) => {
+    const request = new Request(serverData)
     const response = createEmptyResponse();
-    await callback(serverData, response);
+    await callback(request, response);
     return response.__responseObject;
   };
   return {

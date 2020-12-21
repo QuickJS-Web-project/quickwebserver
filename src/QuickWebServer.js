@@ -80,11 +80,20 @@ export class QuickWebServer {
   }
 
   /**
-   * Attach route handler for specific URL
+   * Attach GET route handler for specific URL
    * @param {string} url
    * @param {function} callback
    */
   get(url, callback) {
     this.routeHandlers.GET.push(createRouteHandler(url, callback));
+  }
+
+  /**
+   * Attach POST route handler for specific URL
+   * @param {string} url
+   * @param {function} callback
+   */
+  post(url, callback) {
+    this.routeHandlers.POST.push(createRouteHandler(url, callback))
   }
 }
