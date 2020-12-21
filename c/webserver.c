@@ -6,13 +6,7 @@
 #include "httpserver.h"
 #include "webserver.h"
 
-JSValue callbackFunction;
-JSContext *serverContext;
-
-int requestsCount = 0;
-JSRequestArray serverRequests;
-
-pthread_t serverThread; 
+QWSServerContext QWS;
 struct http_server_s* server;
 
 /**
@@ -22,19 +16,19 @@ struct http_server_s* server;
  */
 void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSContext *ctx) {
 	JSPropertyEnum *props;
-	uint32_t props_count, i;
-	const char *prop_val_str, *prop_key_str;
-	JSValue prop_val;
-	JS_GetOwnPropertyNames(ctx, &props, &props_count, headers, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
-	for(i = 0; i < props_count; i++) {
-        prop_val = JS_GetProperty(ctx, headers, props[i].atom);
-		if (!JS_IsUndefined(prop_val)) {
-			prop_key_str = JS_AtomToCString(ctx, props[i].atom);
-			prop_val_str = JS_ToCString(ctx, prop_val);	
-			http_response_header(response, prop_key_str, prop_val_str);
+	uint32_t propsCount, i;
+	const char *propValueStr, *propKeyStr;
+	JSValue propValue;
+	JS_GetOwnPropertyNames(ctx, &props, &propsCount, headers, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY);
+	for(i = 0; i < propsCount; i++) {
+        propValue = JS_GetProperty(ctx, headers, props[i].atom);
+		if (!JS_IsUndefined(propValue)) {
+			propKeyStr = JS_AtomToCString(ctx, props[i].atom);
+			propValueStr = JS_ToCString(ctx, propValue);	
+			http_response_header(response, propKeyStr, propValueStr);
 		}
 	}
-	JS_FreeValue(ctx, prop_val);
+	JS_FreeValue(ctx, propValue);
 }
 
 /**
@@ -43,70 +37,70 @@ void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSCont
  * 
  */ 
 JSValue parseHttp(struct http_request_s* request) {
-	JSValue ret_obj;
+	JSValue returnObject;
 
-	ret_obj = JS_NewObject(serverContext);
+	returnObject = JS_NewObject(QWS.serverContext);
 
 	// Getting URL 
 	http_string_t target = http_request_target(request);
 	char url[target.len];
 	stringSlice(url, target.buf, target.len);
-	JS_DefinePropertyValueStr(serverContext, ret_obj, "url",
-                                  JS_NewString(serverContext, url),
+	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "url",
+                                  JS_NewString(QWS.serverContext, url),
                                   JS_PROP_C_W_E);
 
 	// Getting request method
 	http_string_t method = http_request_method(request);
 	char request_method[method.len];
 	stringSlice(request_method, method.buf, method.len);
-	JS_DefinePropertyValueStr(serverContext, ret_obj, "method",
-                                  JS_NewString(serverContext, request_method),
+	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "method",
+                                  JS_NewString(QWS.serverContext, request_method),
                                   JS_PROP_C_W_E);
 
 	// Getting request body
 	http_string_t body = http_request_body(request);
-	char request_body[body.len];
-	stringSlice(request_body, body.buf, body.len);
-	JS_DefinePropertyValueStr(serverContext, ret_obj, "body",
-                                  JS_NewString(serverContext, request_body),
+	char requestBody[body.len];
+	stringSlice(requestBody, body.buf, body.len);
+	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
+                                  JS_NewString(QWS.serverContext, requestBody),
                                   JS_PROP_C_W_E);
 
 	// Getting all the headers
-	JSValue headers_obj;
-	headers_obj = JS_NewObject(serverContext);
+	JSValue headersObject;
+	headersObject = JS_NewObject(QWS.serverContext);
 	http_string_t key, val;
 	int iter = 0;
 	while (http_request_iterate_headers(request, &key, &val, &iter)) {
 	    char header_key[key.len], header_value[val.len];
 	    stringSlice(header_key, key.buf, key.len);
 	    stringSlice(header_value, val.buf, val.len);
-		JS_DefinePropertyValueStr(serverContext, headers_obj, header_key,
-								  JS_NewString(serverContext, header_value),
+		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
+								  JS_NewString(QWS.serverContext, header_value),
 								  JS_PROP_C_W_E);
 	}
-	JS_DefinePropertyValueStr(serverContext, ret_obj, "headers", headers_obj, JS_PROP_C_W_E);
+	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "headers", headersObject, JS_PROP_C_W_E);
 	
 
-	return ret_obj;
+	return returnObject;
 }
 
 /**
  * Sending response to client
  * 
  */ 
-void response(struct http_request_s* request, JSValue js_handler_data, JSContext *ctx) {
+void response(struct http_request_s* request, JSValue jsHandlerData, JSContext *ctx) {
 	size_t len;
 
-	if (JS_IsException(js_handler_data))
+	if (JS_IsException(jsHandlerData))
 		js_std_dump_error(ctx);
 	// Getting data from callback called above:
 	// status, response headers, response body
     const char *callbackResponse, *responseType;
     int status;
-    JSValue content = JS_GetPropertyStr(ctx, js_handler_data, "content");
-	JSValue httpStatus =  JS_GetPropertyStr(ctx, js_handler_data, "status");
-	JSValue headers = JS_GetPropertyStr(ctx, js_handler_data, "headers");
-	JSValue respType = JS_GetPropertyStr(ctx, js_handler_data, "responseType");
+    JSValue content = JS_GetPropertyStr(ctx, jsHandlerData, "content");
+	JSValue httpStatus =  JS_GetPropertyStr(ctx, jsHandlerData, "status");
+	JSValue headers = JS_GetPropertyStr(ctx, jsHandlerData, "headers");
+	JSValue respType = JS_GetPropertyStr(ctx, jsHandlerData, "responseType");
 	JS_ToInt32(ctx, &status, httpStatus);
 	responseType = JS_ToCStringLen(ctx, &len, respType);
 
@@ -159,17 +153,14 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
 	int requestId, requestIndex;
 	JS_ToInt32(ctx, &requestId, argv[0]);
 
-	JSRequest *request = getRequestById(requestId, &serverRequests, &requestIndex);
+	JSRequest *request = getRequestById(requestId, &QWS.serverRequests, &requestIndex);
 	if (!request) {
 		JS_ThrowInternalError(ctx, "[QuickWebServer] Request not found");
 	}
-	struct http_request_s* server_request;
-	if (!request) {
-		JS_ThrowReferenceError(ctx, "[QuickWebServer] Request to respond not found");
-	}
-	
-	server_request = request->request;
-	response(server_request, argv[1], ctx);
+
+	struct http_request_s* serverRequest;	
+	serverRequest = request->request;
+	response(serverRequest, argv[1], ctx);
 
 	// @todo remove requests from array
 
@@ -181,32 +172,35 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
  * 
  */ 
 void requestCallback(struct http_request_s* request) {
-	JSValue func1, ret;
+	JSValue cbFunc, cbReturnValue;
 
-	JSRequest js_request;
-	js_request.reqId = requestsCount + 1;
-	js_request.request = request;
-	registerRequest(&serverRequests, js_request);
-	requestsCount++;
+	JSRequest jsRequest;
+	jsRequest.reqId = QWS.requestsCount + 1;
+	jsRequest.request = request;
+	registerRequest(&QWS.serverRequests, jsRequest);
+	QWS.requestsCount++;
 
 	// Parsing request and calling JS calback with
 	// parsed data
 	JSValue httpObject = parseHttp(request);
-	JSValue requestId = JS_NewInt32(serverContext, js_request.reqId);
-	JSValue callbackObject = JS_NewObject(serverContext);
-	JS_DefinePropertyValueStr(serverContext, callbackObject, "http", httpObject, JS_PROP_C_W_E);
-	JS_DefinePropertyValueStr(serverContext, callbackObject, "requestId", requestId, JS_PROP_C_W_E);
-	func1 = JS_DupValue(serverContext, callbackFunction);
-	ret = JS_Call(serverContext, func1, JS_UNDEFINED, 1, (JSValueConst *)&callbackObject);
+	JSValue requestId = JS_NewInt32(QWS.serverContext, jsRequest.reqId);
+	JSValue callbackObject = JS_NewObject(QWS.serverContext);
+	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "http", httpObject, JS_PROP_C_W_E);
+	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "requestId", requestId, JS_PROP_C_W_E);
+	cbFunc = JS_DupValue(QWS.serverContext, QWS.callbackFunction);
+	cbReturnValue = JS_Call(QWS.serverContext, cbFunc, JS_UNDEFINED, 1, (JSValueConst *)&callbackObject);
 
-	JS_FreeValue(serverContext, func1);
-	JS_FreeValue(serverContext, httpObject);
-	JS_FreeValue(serverContext, ret);
-	JS_FreeValue(serverContext, requestId);
+	JS_FreeValue(QWS.serverContext, cbFunc);
+	JS_FreeValue(QWS.serverContext, httpObject);
+	JS_FreeValue(QWS.serverContext, cbReturnValue);
+	JS_FreeValue(QWS.serverContext, requestId);
 }
 
-static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
-{
+/**
+ * JS-function to start server
+ * 
+ */ 
+static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
 	if (argc != 2) {
         return JS_ThrowReferenceError(ctx, "[QuickWebServer] Wrong number of arguments for server launching");
 	}
@@ -217,10 +211,11 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
         return JS_ThrowTypeError(ctx, "[QuickWebServer] Port is not a number");
     }
 
-	initRequestsArray(&serverRequests, 1);
+	initRequestsArray(&QWS.serverRequests, 1);
 
-	serverContext = ctx;
-	callbackFunction = argv[0];
+	QWS.serverContext = ctx;
+	QWS.callbackFunction = argv[0];
+	QWS.requestsCount = 1;
 
 	int port;
 	JS_ToInt32(ctx, &port, argv[1]);
@@ -231,24 +226,28 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	return JS_NewInt32(ctx, 0);
 }
 
+/**
+ * JS finctions list
+ * 
+ */ 
 static const JSCFunctionListEntry js_webserver_funcs[] = {
     JS_CFUNC_DEF("startServer", 2, startServer),
 	JS_CFUNC_DEF("respond", 2, serverRespond),
 };
 
-static int js_webserver_init(JSContext *ctx, JSModuleDef *m)
-{
+/**
+ * Set list of "exports" of our QuickJS module
+ * 
+ */ 
+static int js_webserver_init(JSContext *ctx, JSModuleDef *m) {
     return JS_SetModuleExportList(ctx, m, js_webserver_funcs, countof(js_webserver_funcs));
 }
 
-#ifdef JS_SHARED_LIBRARY
-#define JS_INIT_MODULE js_init_module
-#else
-#define JS_INIT_MODULE js_init_module_webserver
-#endif
-
-JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name)
-{
+/**
+ * Init QuickJS module
+ * 
+ */ 
+JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name) {
     JSModuleDef *m;
     m = JS_NewCModule(ctx, module_name, js_webserver_init);
     

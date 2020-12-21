@@ -2,7 +2,22 @@
 #include "cutils.h"
 #include "httpserver.h"
 
-JSModuleDef *js_init_module_webserver(JSContext *ctx, const char *module_name);
+#ifdef JS_SHARED_LIBRARY
+#define JS_INIT_MODULE js_init_module
+#else
+#define JS_INIT_MODULE js_init_module_webserver
+#endif
+
+JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name);
+static int js_webserver_init(JSContext *ctx, JSModuleDef *m);
+static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+void requestCallback(struct http_request_s* request);
+static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+void response(struct http_request_s* request, JSValue jsHandlerData, JSContext *ctx);
+JSValue parseHttp(struct http_request_s* request);
+void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSContext *ctx);
+
+static const JSCFunctionListEntry js_webserver_funcs[];
 
 typedef struct {
     int reqId;
@@ -29,6 +44,7 @@ typedef struct {
     JSContext *serverContext;
     JSValue callbackFunction;
     JSRequestArray serverRequests;
+    int requestsCount;
 } QWSServerContext;
 
 void initRequestsArray(JSRequestArray *requests, size_t initialSize) {
