@@ -6,7 +6,7 @@ import { findRouteHandler } from './utils/findRouteHandler.js';
 import { deleteFirstSlash, deleteLastSlash, deleteEdgeSlashes } from './utils/deleteSlashes.js';
 import mime from './utils/mime/index.js';
 
-export class QuickWebServer {
+export default class QuickWebServer {
   worker = new Worker('./worker/server_worker.js');
 
   routeHandlers = {
