@@ -35,6 +35,7 @@ Ultimately, most of the work happens outside the server's area of responsibility
 ### TODOs and known issues
 - [ ] No parsing of the request body, only raw content. Solvable in the case of `json`, but 
   `form-data` and `x-www-form-urlencoded` are inconvenient;
+- [ ] File uploading via POST `multipart/form-data` doesn't work yet;
 - [ ] Sending a POST request with a file larger than 1MB may cause a server crash;
   
 _You can add to this list by opening an issue in this repository._

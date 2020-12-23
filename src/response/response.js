@@ -1,7 +1,7 @@
 import { getType } from '../utils/getType.js';
 import mime from '../utils/mime/index.js';
 
-class Response {
+export default class Response {
   headers = {};
   _status = 200;
   content = '';
@@ -12,7 +12,7 @@ class Response {
    * @param {number} v
    */
   status(v) {
-    this._status = 200;
+    this._status = v;
   }
 
   /**
@@ -91,5 +91,3 @@ class Response {
     };
   }
 }
-
-export const createEmptyResponse = () => new Response();
