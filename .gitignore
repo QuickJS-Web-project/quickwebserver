@@ -2,6 +2,8 @@ c/*
 !c/webserver.c
 !c/webserver.h
 libqws.so
+libqws.o
+libqws.o.d
 node_modules
 .idea
 .DS_Store

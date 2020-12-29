@@ -1,6 +1,6 @@
 import { regexparam } from './regexparam.js';
 import Response from '../response/response.js';
-import Request from "../request/request.js";
+import Request from '../request/request.js';
 
 /**
  * Create handler object for route
@@ -11,7 +11,7 @@ import Request from "../request/request.js";
 export default function createRouteHandler(url, callback) {
   const pathObject = regexparam(url);
   const routeHandler = async (serverData) => {
-    const request = new Request(serverData)
+    const request = new Request(serverData);
     const response = new Response();
     await callback(request, response);
     return response.__responseObject;
