@@ -1,9 +1,9 @@
 c/*
-!c/webserver.c
-!c/webserver.h
-libqws.so
-libqws.o
-libqws.o.d
+!c/quickwebserver.c
+!c/quickwebserver.h
+quickwebserver.so
+quickwebserver.o
+quickwebserver.o.d
 node_modules
 .idea
 .DS_Store

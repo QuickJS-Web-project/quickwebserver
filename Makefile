@@ -1,6 +1,6 @@
 OBJDIR=.obj
 CC=clang
-CFLAGS=-Wall -fPIC -std=gnu17 -Wno-array-bounds
+CFLAGS=-g -Wall -MMD -MF $(OBJDIR)/$(@F).d -Wno-array-bounds
 LDFLAGS=-flto
 CFLAGS_OPT=$(CFLAGS) -O2 -flto
 DEFINES:=-D_GNU_SOURCE
@@ -23,7 +23,7 @@ $(OBJDIR)/webserver_test.o: webserver_test.c
 	$(CC) $(LDFLAGS) $(CFLAGS_OPT) -c $(INCLUDES) -o $@ webserver_test.c
 
 webserver_test.c: webserver_test.js
-	qjsc -flto -e -M webserver,webserver -m -o $@ webserver_test.js
+	qjsc -flto -D src/worker/server_worker.js -e -M webserver,webserver -m -o $@ webserver_test.js
 
 clean:
 	rm ./webserver_test

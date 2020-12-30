@@ -1,4 +1,4 @@
-import * as WebServer from '../libqws.so';
+import * as WebServer from '../quickwebserver.so';
 import { setTimeout, Worker } from 'os';
 import { HTTP_NOT_FOUND } from './data/httpErrors.js';
 import createRouteHandler from './utils/createRouteHandler.js';

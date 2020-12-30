@@ -21,9 +21,10 @@ printf "Step 3. Building server shared lib\n"
 
 if [[ $PLATFORM = "Darwin" ]]
   then
-    clang -Wall -fPIC -shared -std=gnu17 -flto -L./ -lquickjs -DJS_SHARED_LIBRARY webserver.c -o ../libqws.so
+    clang -Wall -MMD -MF ../quickwebserver.o.d -Wno-array-bounds -O2 -flto -c -I/usr/local/include/quickjs -o ../quickwebserver.o quickwebserver.c
+    clang -Wall -fPIC -shared -std=gnu17 -flto -L./ -lquickjs -DJS_SHARED_LIBRARY quickwebserver.c -o ../quickwebserver.so
   else
-    gcc -c -fPIC -o libqws.o webserver.c -DJS_SHARED_LIBRARY -L. -lquickjs && gcc -fPIC -shared -o ../libqws.so libqws.o
+    gcc -c -fPIC -o ../quickwebserver.o quickwebserver.c -DJS_SHARED_LIBRARY -L. -lquickjs && gcc -fPIC -shared -o ../quickwebserver.so ../quickwebserver.o
 fi
 
 printf "\nDONE!\n"

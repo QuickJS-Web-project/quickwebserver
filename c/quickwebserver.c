@@ -4,7 +4,7 @@
 
 #define HTTPSERVER_IMPL
 #include "httpserver.h"
-#include "webserver.h"
+#include "quickwebserver.h"
 
 QWSServerContext QWS;
 struct http_server_s* server;
@@ -230,7 +230,7 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
  * JS finctions list
  * 
  */ 
-static const JSCFunctionListEntry js_webserver_funcs[] = {
+static const JSCFunctionListEntry js_quickwebserver_funcs[] = {
     JS_CFUNC_DEF("startServer", 2, startServer),
 	JS_CFUNC_DEF("respond", 2, serverRespond),
 };
@@ -239,8 +239,8 @@ static const JSCFunctionListEntry js_webserver_funcs[] = {
  * Set list of "exports" of our QuickJS module
  * 
  */ 
-static int js_webserver_init(JSContext *ctx, JSModuleDef *m) {
-    return JS_SetModuleExportList(ctx, m, js_webserver_funcs, countof(js_webserver_funcs));
+static int js_quickwebserver_init(JSContext *ctx, JSModuleDef *m) {
+    return JS_SetModuleExportList(ctx, m, js_quickwebserver_funcs, countof(js_quickwebserver_funcs));
 }
 
 /**
@@ -249,11 +249,11 @@ static int js_webserver_init(JSContext *ctx, JSModuleDef *m) {
  */ 
 JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name) {
     JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, js_webserver_init);
+    m = JS_NewCModule(ctx, module_name, js_quickwebserver_init);
     
     if (!m)
         return NULL;
     
-    JS_AddModuleExportList(ctx, m, js_webserver_funcs, countof(js_webserver_funcs));
+    JS_AddModuleExportList(ctx, m, js_quickwebserver_funcs, countof(js_quickwebserver_funcs));
     return m;
 }

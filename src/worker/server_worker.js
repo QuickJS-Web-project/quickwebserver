@@ -1,4 +1,4 @@
-import { startServer } from '../../libqws.so';
+import { startServer } from '../../quickwebserver.so';
 import { Worker } from 'os';
 
 const parent = Worker.parent;
