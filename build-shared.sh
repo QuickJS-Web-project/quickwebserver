@@ -6,12 +6,13 @@ PLATFORM=$(uname -s)
 
 printf "QuickWebServer: building shared lib on $PLATFORM\nThis action might take a while, please be patient\n"
 
-printf "Step 1. Downloading all sources\n"
+printf "Step 1. Downloading all sources and dependencies:\n- QuickJS source code\n- httpserver.h\n- regexparam.js\n"
 
 curl -L -s https://github.com/bellard/quickjs/tarball/master  --output quickjs_src.tar.gz
 tar -xzf quickjs_src.tar.gz > /dev/null && cp -r ./bellard-quickjs*/* ./ > /dev/null
 rm -rf bellard-quickjs* quickjs_src.tar.gz > /dev/null
 curl -s https://raw.githubusercontent.com/jeremycw/httpserver.h/master/httpserver.h --output httpserver.h > /dev/null
+curl -s https://raw.githubusercontent.com/lukeed/regexparam/master/src/index.js --output ../src/deps/regexparam.js > /dev/null
 
 printf "Step 2. Building QuickJS\n"
 

@@ -1,4 +1,4 @@
-export { default as regexparam } from '../../node_modules/regexparam/dist/regexparam.mjs';
+export { default as regexparam } from '../deps/regexparam.js';
 export function exec(url, pathObject) {
   let i = 0,
     out = {};
