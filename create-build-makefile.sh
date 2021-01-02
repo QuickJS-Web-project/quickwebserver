@@ -18,7 +18,7 @@ ifeq (\$(shell uname -s),Darwin)
 CONFIG_DARWIN=y
 endif
 OBJDIR=\$(APPPATH)/.obj
-ifdef CONFIG_CLANG
+ifdef CONFIG_DARWIN
 CC=clang
 else
 CC=gcc
