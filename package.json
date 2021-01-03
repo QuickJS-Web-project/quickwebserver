@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:shared-lib": "./rebuild-shared",
     "postinstall": "./build-shared.sh",
-    "format": "prettier --write src/**/*.js example/**/*.js"
+    "format": "prettier --write src/**/*.js example/**/*.js docs/**/*.js"
   },
   "keywords": [],
   "author": "",

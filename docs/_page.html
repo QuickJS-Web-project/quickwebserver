@@ -1,0 +1,27 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="/static/main.css" rel="stylesheet" />
+    <link href="/static/zerogrid.css" rel="stylesheet" />
+    <link href="/static/prism.css" rel="stylesheet" />
+    <title>QuickWebServer</title>
+</head>
+<body>
+<div class="zerogrid">
+    <div class="row">
+        <div class="col-1-4">
+            <a class="no-decoration" href="/"><h1>QWS</h1></a>
+            <p><strong>QWS (QuickWebServer) &mdash;</strong><br>Web server functionality for QuickJS</p>
+            {$ MENU $}
+            <div class="copy">
+                <small>&copy; 2021 <a class="no-decoration" href="https://lyoha.info">Lyoha Plotinka</a></small>
+            </div>
+        </div>
+        <div class="col-3-4">
+            <div class="wrap-col">{$ PAGE $}</div>
+        </div>
+    </div>
+</div>
+<script src="/static/prism.js"></script>
+</body>
+</html>
