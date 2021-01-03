@@ -10,6 +10,14 @@
   },
   "keywords": ["server", "quickjs"],
   "author": "Lyoha Plotinka",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/QuickJS-Web-project/quickwebserver.git"
+  },
+  "bugs": {
+    "url": "https://github.com/QuickJS-Web-project/quickwebserver/issues"
+  },
+  "homepage": "https://qws.lyoha.info",
   "license": "MIT",
   "devDependencies": {
     "prettier": "^2.2.1"
