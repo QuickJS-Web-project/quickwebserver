@@ -1,17 +1,16 @@
 {
   "name": "quickwebserver",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "Implementation of HTTP web server in the QuickJS Runtime",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build:shared-lib": "./rebuild-shared",
     "postinstall": "./build-shared.sh",
-    "format": "prettier --write src/**/*.js example/**/*.js docs/**/*.js"
+    "format": "prettier --write src/**/*.js example/**/*.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["server", "quickjs"],
+  "author": "Lyoha Plotinka",
+  "license": "MIT",
   "devDependencies": {
     "prettier": "^2.2.1"
   }
