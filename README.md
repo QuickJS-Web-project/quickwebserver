@@ -41,4 +41,4 @@ Ultimately, most of the work happens outside the server's area of responsibility
 _You can add to this list by opening an issue in this repository._
 
 ### Documentation
-Please see the Wiki section of this repository.
+Please see the [Docs website](https://qws.lyoha.info/) (made with QWS)
