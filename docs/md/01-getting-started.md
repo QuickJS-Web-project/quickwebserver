@@ -28,10 +28,8 @@ no errors), you can use the server.
 This method differs from the previous method in that you need 
 to perform a little more actions:
 1. Clone this repository into a convenient folder;
-2. Go to it and run the script `./build-shared.sh`. This will 
-   start the process of compiling the C module;
-3. When compilation is complete (and if no errors occurred), 
-   you can use the server.
+2. Go to it and run the script `./build-shared.sh`. This will start the process of compiling the C module;
+3. When compilation is complete (and if no errors occurred), you can use the server.
    
 ## Adding to the project
 There is a QuickWebServer.js file inside the src folder. Its 

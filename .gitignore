@@ -10,3 +10,7 @@ node_modules
 package-lock.json
 webserver_test.js
 src/deps/regexparam.js
+docs/env.js
+docs/Makefile
+docs/server
+docs/server.build

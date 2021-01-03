@@ -51,7 +51,7 @@ default: \$(APPSHORT)
 	\$(CC) \$(LDFLAGS) \$(CFLAGS_OPT) -c \$(INCLUDES) -o \$@ \$(APPSHORT).c
 
 \$(APPPATH)/\$(APPSHORT).c: \$(APPSCRIPT)
-	qjsc -flto -D \$(QWSINSTALLED)/src/worker/server_worker.js -e -M webserver,webserver -m -o \$@ \$(APPSCRIPT)
+	qjsc -flto -D \$(QWSINSTALLED)/src/worker/server_worker.js -e -M quickwebserver,quickwebserver -m -o \$@ \$(APPSCRIPT)
 
 clean:
 	rm ./\$(APPSHORT)

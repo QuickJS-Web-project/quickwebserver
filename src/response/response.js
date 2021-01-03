@@ -82,6 +82,15 @@ export default class Response {
     };
   }
 
+  /**
+   * Redirect client to a specific URL via 301 status
+   * @param {string} url
+   */
+  redirect(url) {
+    this.status(301);
+    this.set('location', url);
+  }
+
   get __responseObject() {
     return {
       status: this._status,

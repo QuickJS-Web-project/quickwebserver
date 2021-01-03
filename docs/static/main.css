@@ -1,0 +1,33 @@
+body {
+    font-family: sans-serif;
+    line-height: 1.4;
+    margin: 1rem;
+}
+
+div.menu-elem {
+    margin: 10px 0;
+}
+
+div.menu-elem a, a.no-decoration {
+    color: black;
+    text-decoration: none;
+    outline: none;
+    font-weight: 600;
+}
+
+div.menu-elem a {
+    color: gray;
+}
+
+div.copy {
+    margin-top: 2rem;
+    color: silver;
+}
+
+div.copy a {
+    color: silver;
+}
+
+code {
+    font-size: 1.2rem;
+}
