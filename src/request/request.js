@@ -30,31 +30,31 @@ export default class Request {
    * @returns {string}
    */
   get body() {
-    const contentType = this.headers['content-type'] ?? 'application/json'
-    let returnData
+    const contentType = this.headers['content-type'] ?? 'application/json';
+    let returnData;
     switch (contentType) {
-      case "application/x-www-form-urlencoded":
+      case 'application/x-www-form-urlencoded':
         try {
-          returnData = parseQuery(this.httpData.body)
+          returnData = parseQuery(this.httpData.body);
         } catch (e) {
-          returnData = null
+          returnData = null;
         }
-        break
+        break;
 
-      case "application/json":
+      case 'application/json':
       default:
         try {
-          returnData = JSON.parse(this.httpData.body)
+          returnData = JSON.parse(this.httpData.body);
         } catch (e) {
-          returnData = null
+          returnData = null;
         }
-        break
+        break;
     }
     if (contentType.includes('multipart/form-data')) {
       // @todo: parse multipart/form-data
-      console.log('[QuickWebServer] parsing multipart/form-data is not supported for now')
+      console.log('[QuickWebServer] parsing multipart/form-data is not supported for now');
     }
-    return returnData ?? this.httpData.body
+    return returnData ?? this.httpData.body;
   }
 
   /**
