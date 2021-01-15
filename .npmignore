@@ -1,8 +1,9 @@
 docs
 example
 c/*
-!c/quickwebserver!.c
-!c/quickwebserver!.h
+!c/quickwebserver.c
+!c/quickwebserver.h
+!c/quickwebserver-utils.h
 quickwebserver.so
 quickwebserver.o
 quickwebserver.o.d
