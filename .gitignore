@@ -1,11 +1,12 @@
 c/*
-!c/quickwebserver.c
-!c/quickwebserver.h
+!c/quickwebserver*.c
+!c/quickwebserver*.h
 quickwebserver.so
 quickwebserver.o
 quickwebserver.o.d
 node_modules
 .idea
+.vscode
 .DS_Store
 package-lock.json
 webserver_test.js

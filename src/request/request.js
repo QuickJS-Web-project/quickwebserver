@@ -27,11 +27,34 @@ export default class Request {
   /**
    * Get raw body string
    *
-   * @todo: parse body
    * @returns {string}
    */
   get body() {
-    return this.httpData.body;
+    const contentType = this.headers['content-type'] ?? 'application/json'
+    let returnData
+    switch (contentType) {
+      case "application/x-www-form-urlencoded":
+        try {
+          returnData = parseQuery(this.httpData.body)
+        } catch (e) {
+          returnData = null
+        }
+        break
+
+      case "application/json":
+      default:
+        try {
+          returnData = JSON.parse(this.httpData.body)
+        } catch (e) {
+          returnData = null
+        }
+        break
+    }
+    if (contentType.includes('multipart/form-data')) {
+      // @todo: parse multipart/form-data
+      console.log('[QuickWebServer] parsing multipart/form-data is not supported for now')
+    }
+    return returnData ?? this.httpData.body
   }
 
   /**

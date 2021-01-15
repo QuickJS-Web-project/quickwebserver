@@ -8,6 +8,7 @@
 
 QWSServerContext QWS;
 struct http_server_s* server;
+JSRequestArray *serverRequests;
 
 /**
  * Extracting headers from JS object and applying them to the
@@ -59,10 +60,8 @@ JSValue parseHttp(struct http_request_s* request) {
 
 	// Getting request body
 	http_string_t body = http_request_body(request);
-	char requestBody[body.len];
-	stringSlice(requestBody, body.buf, body.len);
 	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
-                                  JS_NewString(QWS.serverContext, requestBody),
+                                  JS_NewString(QWS.serverContext, body.buf),
                                   JS_PROP_C_W_E);
 
 	// Getting all the headers
@@ -71,9 +70,11 @@ JSValue parseHttp(struct http_request_s* request) {
 	http_string_t key, val;
 	int iter = 0;
 	while (http_request_iterate_headers(request, &key, &val, &iter)) {
-	    char header_key[key.len], header_value[val.len];
-	    stringSlice(header_key, key.buf, key.len);
-	    stringSlice(header_value, val.buf, val.len);
+	    char header_key[key.len + 1], header_value[val.len + 1];
+	    char *header_key_p = header_key;
+	    char *header_value_p = header_value;
+	    stringSlice(header_key_p, key.buf, key.len);
+	    stringSlice(header_value_p, val.buf, val.len);
 		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
 								  JS_NewString(QWS.serverContext, header_value),
 								  JS_PROP_C_W_E);
@@ -153,7 +154,7 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
 	int requestId, requestIndex;
 	JS_ToInt32(ctx, &requestId, argv[0]);
 
-	JSRequest *request = getRequestById(requestId, &QWS.serverRequests, &requestIndex);
+	JSRequest *request = getRequestById(requestId, serverRequests, &requestIndex);
 	if (!request) {
 		JS_ThrowInternalError(ctx, "[QuickWebServer] Request not found");
 	}
@@ -162,7 +163,7 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
 	serverRequest = request->request;
 	response(serverRequest, argv[1], ctx);
 
-	// @todo remove requests from array
+	ARRAY_REMOVE(serverRequests, requestIndex, 1);
 
 	return JS_NewInt32(ctx, 0);
 }
@@ -177,7 +178,7 @@ void requestCallback(struct http_request_s* request) {
 	JSRequest jsRequest;
 	jsRequest.reqId = QWS.requestsCount + 1;
 	jsRequest.request = request;
-	registerRequest(&QWS.serverRequests, jsRequest);
+	ARRAY_PUSH(serverRequests, jsRequest);
 	QWS.requestsCount++;
 
 	// Parsing request and calling JS calback with
@@ -211,7 +212,7 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
         return JS_ThrowTypeError(ctx, "[QuickWebServer] Port is not a number");
     }
 
-	initRequestsArray(&QWS.serverRequests, 1);
+    ARRAY_CREATE(serverRequests, 2, 0);
 
 	QWS.serverContext = ctx;
 	QWS.callbackFunction = argv[0];
