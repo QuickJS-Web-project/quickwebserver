@@ -88,7 +88,9 @@ char *cut_string(const char *buffer, const char *start_from, char end_char) {
 // @TODO: parse multiple files
 // @TODO: parse rest body
 void getMultipartFile(const char *buffer, size_t buf_length, char *content_type) {
-  char *boundary = cut_string(content_type, "boundary=", '\n');  
+  char *boundary = cut_string(content_type, "boundary=", '\n');
+
+  // Closing boundary has "--" added to beginning and ending
   char b_end[strlen(boundary) + 5];
   snprintf(b_end, sizeof b_end, "%s%s%s", "--", boundary, "--");
   char *boundary_closing = b_end;
