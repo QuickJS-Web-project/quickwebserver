@@ -37,7 +37,7 @@ void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSCont
  * request data (url, method, headers)
  * 
  */ 
-int parseHttp(JSValue *result, struct http_request_s* request) {
+void parseHttp(struct http_request_s* request) {
 	JSValue returnObject;
 
 	returnObject = JS_NewObject(QWS.serverContext);
@@ -64,25 +64,6 @@ int parseHttp(JSValue *result, struct http_request_s* request) {
 	const char *request_content_type_p = request_content_type;
 	stringSlice(request_content_type, contentTypeHeader.buf, contentTypeHeader.len);
 
-	// Getting request body
-	http_string_t body = http_request_body(request);
-	short is_form_data = strstr(request_content_type_p, "multipart/form-data") != NULL;
-	if (is_form_data && body.len != 0) 
-		getMultipartFile(body.buf, body.len, request_content_type_p);
-
-	// @hotfix: big request payloads causing app failure; chuked body parsing is not understandable. 
-	// For now just handling zero-length body and notifying user about possible issue. 
-	if (body.len != 0) {
-		JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
-                                  JS_NewString(QWS.serverContext, body.buf),
-                                  JS_PROP_C_W_E);
-	} else {
-		if (is_form_data) {
-			hs_error_response(request, 413, "Payload too large");
-			return 0;
-		}
-	}
-
 	// Getting all the headers
 	JSValue headersObject;
 	headersObject = JS_NewObject(QWS.serverContext);
@@ -104,10 +85,42 @@ int parseHttp(JSValue *result, struct http_request_s* request) {
 								  JS_PROP_C_W_E);
 	}
 	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "headers", headersObject, JS_PROP_C_W_E);
-	
 
-	*result = returnObject;
-	return 1;
+	// Getting request body
+	http_string_t body = http_request_body(request);
+	short is_form_data = strstr(request_content_type_p, "multipart/form-data") != NULL;
+
+	if (http_request_has_flag(request, HTTP_FLG_STREAMED)) {
+		http_string_t contentLengthHeader = http_request_header(request, "Content-Length");
+		char request_content_length[contentLengthHeader.len];
+		stringSlice(request_content_length, contentLengthHeader.buf, contentLengthHeader.len);
+		char *request_content_length_p = request_content_length, *end;
+		long int content_length = strtol(request_content_length_p, &end, 10);
+
+		chunk_buf_t* chunk_buffer = (chunk_buf_t*)calloc(1, sizeof(chunk_buf_t));
+		printf("%d\n",content_length);
+    	chunk_buffer->buf = (char*)malloc(content_length);
+		chunk_buffer->request = request;
+		chunk_buffer->parsedDataObject = &returnObject;
+		http_request_set_userdata(request, chunk_buffer);
+
+		deal_with_chunked(request, request_content_type_p);
+	} else {
+		if (is_form_data && body.len != 0) 
+			getMultipartFile(body.buf, body.len, request_content_type_p);
+	}
+	// @hotfix: big request payloads causing app failure; chuked body parsing is not understandable. 
+	// For now just handling zero-length body and notifying user about possible issue. 
+	if (body.len != 0) {
+		// JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
+        //                           JS_NewString(QWS.serverContext, body.buf),
+        //                           JS_PROP_C_W_E);
+	} else {
+		if (is_form_data) {
+			// hs_error_response(request, 413, "Payload too large");
+			// return 0;
+		}
+	}
 }
 
 /**
@@ -197,11 +210,11 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
  * What happens when request hits our server
  * 
  */ 
-void requestCallback(struct http_request_s* request) {
+void requestCallback(struct http_request_s* request, JSValue httpObject) {
 	// Parsing request and calling JS calback with
 	// parsed data
-	JSValue httpObject;
-	if (!parseHttp(&httpObject, request)) return;
+	// JSValue httpObject;
+	// if (!parseHttp(&httpObject, request)) return;
 
 	JSValue cbFunc, cbReturnValue;
 	JSRequest jsRequest;
@@ -247,7 +260,7 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	int port;
 	JS_ToInt32(ctx, &port, argv[1]);
 
-  	struct http_server_s* server = http_server_init(port, requestCallback);
+  	struct http_server_s* server = http_server_init(port, parseHttp);
 	http_server_listen(server);
 
 	return JS_NewInt32(ctx, 0);

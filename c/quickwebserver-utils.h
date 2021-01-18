@@ -8,6 +8,13 @@ typedef struct {
     unsigned long size;
 } FileData;
 
+typedef struct {
+  char *buf;
+  int index;
+  struct http_request_s* request;
+  JSValue *parsedDataObject;
+} chunk_buf_t;
+
 /**
  * For next 3 defines special thanks to https://github.com/andrei-markeev/ts2c
  */ 
@@ -85,10 +92,16 @@ char *cut_string(const char *buffer, const char *start_from, char end_char) {
   return result;
 }
 
+char *content_type_global;
+
 // @TODO: parse multiple files
 // @TODO: parse rest body
 void getMultipartFile(const char *buffer, size_t buf_length, const char *content_type) {
+  printf("%s\n", content_type);
+
   char *boundary = cut_string(content_type, "boundary=", '\n');
+
+  printf("Boundary: %s\n", boundary);
 
   // Closing boundary has "--" added to beginning and ending
   char b_end[strlen(boundary) + 5];
@@ -111,7 +124,7 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
   size_t boundary_start = 0;
   size_t file_end = 0;
   size_t i = 0;
-  while(1) {
+  while(i < buf_length) {
     char byte_v = ptr[i];
 
     if (boundary_start == 0 && byte_v == boundary_closing[0]) {
@@ -129,10 +142,42 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
     i++;
   }
 
+  printf("File end: %d\n", file_end);
+
   // @todo: real file name
   FILE *resFile = fopen("./test.png", "wb");
   for (int i = 2; i < file_end ; i++) {
     fputc(ptr[i], resFile);
   }
   fclose(resFile);
+}
+
+chunk_buf_t *chunk_b_ptr;
+
+void chunk_req_cb(struct http_request_s* request) {
+  http_string_t str = http_request_chunk(request);
+  chunk_buf_t* chunk_buffer = (chunk_buf_t*)http_request_userdata(request);
+  if (str.len > 0) {
+    // printf("Reading chunk, %d\n", str.len);
+    memcpy(chunk_buffer->buf + chunk_buffer->index, str.buf, str.len);
+    chunk_buffer->index += str.len;
+    http_request_read_chunk(request, chunk_req_cb);
+  } else {
+    // printf("Reading chunk finished! %s\n", content_type_global);
+    // printf("%s\n", chunk_buffer->buf);
+    getMultipartFile(chunk_buffer->buf, chunk_buffer->index, content_type_global);
+    // requestCallback(request, chunk_buffer->parsedDataObject);
+    // http_response_body(chunk_buffer->response, chunk_buffer->buf, chunk_buffer->index);
+    // http_respond(request, chunk_buffer->response);
+    // free(chunk_buffer->buf);
+    // free(chunk_buffer);
+  }
+}
+
+void deal_with_chunked(http_request_t *request, char *content_type) {
+  // printf("Reading chunk start\n");
+  printf("CT deal: %s\n", content_type);
+  content_type_global = malloc(strlen(content_type));
+  strcpy(content_type_global, content_type);
+  http_request_read_chunk(request, chunk_req_cb);
 }

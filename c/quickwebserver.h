@@ -1,7 +1,6 @@
 #include "quickjs.h"
 #include "cutils.h"
 #include "httpserver.h"
-#include "quickwebserver-utils.h"
 
 #ifdef JS_SHARED_LIBRARY
 #define JS_INIT_MODULE js_init_module
@@ -12,11 +11,13 @@
 JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name);
 static int js_quickwebserver_init(JSContext *ctx, JSModuleDef *m);
 static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
-void requestCallback(struct http_request_s* request);
+void requestCallback(struct http_request_s* request, JSValue httpObject);
 static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 void response(struct http_request_s* request, JSValue jsHandlerData, JSContext *ctx);
-int parseHttp(JSValue *result, struct http_request_s* request);
+void parseHttp(struct http_request_s* request);
 void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSContext *ctx);
+
+#include "quickwebserver-utils.h"
 
 static const JSCFunctionListEntry js_quickwebserver_funcs[];
 
