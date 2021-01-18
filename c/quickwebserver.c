@@ -61,11 +61,13 @@ JSValue parseHttp(struct http_request_s* request) {
 	// Getting content type
 	http_string_t contentTypeHeader = http_request_header(request, "Content-Type");
 	char request_content_type[contentTypeHeader.len];
+	const char *request_content_type_p = request_content_type;
 	stringSlice(request_content_type, contentTypeHeader.buf, contentTypeHeader.len);
 
 	// Getting request body
 	http_string_t body = http_request_body(request);
-	getMultipartFile(body.buf, body.len, request_content_type);
+	if (strstr(request_content_type_p, "multipart/form-data") != NULL) 
+		getMultipartFile(body.buf, body.len, request_content_type_p);
 	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
                                   JS_NewString(QWS.serverContext, body.buf),
                                   JS_PROP_C_W_E);
