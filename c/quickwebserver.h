@@ -15,7 +15,7 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 void requestCallback(struct http_request_s* request);
 static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 void response(struct http_request_s* request, JSValue jsHandlerData, JSContext *ctx);
-JSValue parseHttp(struct http_request_s* request);
+int parseHttp(JSValue *result, struct http_request_s* request);
 void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSContext *ctx);
 
 static const JSCFunctionListEntry js_quickwebserver_funcs[];

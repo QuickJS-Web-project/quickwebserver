@@ -37,7 +37,7 @@ void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSCont
  * request data (url, method, headers)
  * 
  */ 
-JSValue parseHttp(struct http_request_s* request) {
+int parseHttp(JSValue *result, struct http_request_s* request) {
 	JSValue returnObject;
 
 	returnObject = JS_NewObject(QWS.serverContext);
@@ -66,11 +66,22 @@ JSValue parseHttp(struct http_request_s* request) {
 
 	// Getting request body
 	http_string_t body = http_request_body(request);
-	if (strstr(request_content_type_p, "multipart/form-data") != NULL) 
+	short is_form_data = strstr(request_content_type_p, "multipart/form-data") != NULL;
+	if (is_form_data && body.len != 0) 
 		getMultipartFile(body.buf, body.len, request_content_type_p);
-	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
+
+	// @hotfix: big request payloads causing app failure; chuked body parsing is not understandable. 
+	// For now just handling zero-length body and notifying user about possible issue. 
+	if (body.len != 0) {
+		JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
                                   JS_NewString(QWS.serverContext, body.buf),
                                   JS_PROP_C_W_E);
+	} else {
+		if (is_form_data) {
+			hs_error_response(request, 413, "Payload too large");
+			return 0;
+		}
+	}
 
 	// Getting all the headers
 	JSValue headersObject;
@@ -83,6 +94,11 @@ JSValue parseHttp(struct http_request_s* request) {
 	    char *header_value_p = header_value;
 	    stringSlice(header_key_p, key.buf, key.len);
 	    stringSlice(header_value_p, val.buf, val.len);
+
+		// If body is too large, we should check if key and value of header are 
+		// filled; else we will face an infinite loop and server will crash
+		if (strlen(header_key_p) == 0 && strlen(header_value_p) == 0) break;
+
 		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
 								  JS_NewString(QWS.serverContext, header_value),
 								  JS_PROP_C_W_E);
@@ -90,7 +106,8 @@ JSValue parseHttp(struct http_request_s* request) {
 	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "headers", headersObject, JS_PROP_C_W_E);
 	
 
-	return returnObject;
+	*result = returnObject;
+	return 1;
 }
 
 /**
@@ -181,17 +198,18 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
  * 
  */ 
 void requestCallback(struct http_request_s* request) {
-	JSValue cbFunc, cbReturnValue;
+	// Parsing request and calling JS calback with
+	// parsed data
+	JSValue httpObject;
+	if (!parseHttp(&httpObject, request)) return;
 
+	JSValue cbFunc, cbReturnValue;
 	JSRequest jsRequest;
 	jsRequest.reqId = QWS.requestsCount + 1;
 	jsRequest.request = request;
 	ARRAY_PUSH(serverRequests, jsRequest);
 	QWS.requestsCount++;
 
-	// Parsing request and calling JS calback with
-	// parsed data
-	JSValue httpObject = parseHttp(request);
 	JSValue requestId = JS_NewInt32(QWS.serverContext, jsRequest.reqId);
 	JSValue callbackObject = JS_NewObject(QWS.serverContext);
 	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "http", httpObject, JS_PROP_C_W_E);
