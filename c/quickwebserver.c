@@ -6,10 +6,6 @@
 #include "httpserver.h"
 #include "quickwebserver.h"
 
-QWSServerContext QWS;
-struct http_server_s* server;
-JSRequestArray *serverRequests;
-
 /**
  * Extracting headers from JS object and applying them to the
  * current server response
@@ -30,59 +26,6 @@ void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSCont
 		}
 	}
 	JS_FreeValue(ctx, propValue);
-}
-
-/**
- * Parsing HTTP request and creating JS object with
- * request data (url, method, headers)
- * 
- */ 
-JSValue parseHttp(struct http_request_s* request) {
-	JSValue returnObject;
-
-	returnObject = JS_NewObject(QWS.serverContext);
-
-	// Getting URL 
-	http_string_t target = http_request_target(request);
-	char url[target.len];
-	stringSlice(url, target.buf, target.len);
-	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "url",
-                                  JS_NewString(QWS.serverContext, url),
-                                  JS_PROP_C_W_E);
-
-	// Getting request method
-	http_string_t method = http_request_method(request);
-	char request_method[method.len];
-	stringSlice(request_method, method.buf, method.len);
-	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "method",
-                                  JS_NewString(QWS.serverContext, request_method),
-                                  JS_PROP_C_W_E);
-
-	// Getting request body
-	http_string_t body = http_request_body(request);
-	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "body",
-                                  JS_NewString(QWS.serverContext, body.buf),
-                                  JS_PROP_C_W_E);
-
-	// Getting all the headers
-	JSValue headersObject;
-	headersObject = JS_NewObject(QWS.serverContext);
-	http_string_t key, val;
-	int iter = 0;
-	while (http_request_iterate_headers(request, &key, &val, &iter)) {
-	    char header_key[key.len + 1], header_value[val.len + 1];
-	    char *header_key_p = header_key;
-	    char *header_value_p = header_value;
-	    stringSlice(header_key_p, key.buf, key.len);
-	    stringSlice(header_value_p, val.buf, val.len);
-		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
-								  JS_NewString(QWS.serverContext, header_value),
-								  JS_PROP_C_W_E);
-	}
-	JS_DefinePropertyValueStr(QWS.serverContext, returnObject, "headers", headersObject, JS_PROP_C_W_E);
-	
-
-	return returnObject;
 }
 
 /**
@@ -169,32 +112,73 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
 }
 
 /**
- * What happens when request hits our server
+ * Parsing is done: time to pass data to JS
  * 
  */ 
-void requestCallback(struct http_request_s* request) {
+void requestCallback(struct http_request_s* request, int reqId) {
 	JSValue cbFunc, cbReturnValue;
 
-	JSRequest jsRequest;
-	jsRequest.reqId = QWS.requestsCount + 1;
-	jsRequest.request = request;
-	ARRAY_PUSH(serverRequests, jsRequest);
-	QWS.requestsCount++;
+	int reqIdx = 0;
+	JSRequest *req = getRequestById(reqId, serverRequests, &reqIdx);
 
-	// Parsing request and calling JS calback with
-	// parsed data
-	JSValue httpObject = parseHttp(request);
-	JSValue requestId = JS_NewInt32(QWS.serverContext, jsRequest.reqId);
+	JSValue requestId = JS_NewInt32(QWS.serverContext, req->reqId);
 	JSValue callbackObject = JS_NewObject(QWS.serverContext);
-	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "http", httpObject, JS_PROP_C_W_E);
+	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "http", req->parsed, JS_PROP_C_W_E);
 	JS_DefinePropertyValueStr(QWS.serverContext, callbackObject, "requestId", requestId, JS_PROP_C_W_E);
 	cbFunc = JS_DupValue(QWS.serverContext, QWS.callbackFunction);
 	cbReturnValue = JS_Call(QWS.serverContext, cbFunc, JS_UNDEFINED, 1, (JSValueConst *)&callbackObject);
 
 	JS_FreeValue(QWS.serverContext, cbFunc);
-	JS_FreeValue(QWS.serverContext, httpObject);
 	JS_FreeValue(QWS.serverContext, cbReturnValue);
 	JS_FreeValue(QWS.serverContext, requestId);
+}
+
+void parseRequest(struct http_request_s* request) {
+	JSRequest jsRequest;
+	jsRequest.reqId = QWS.requestsCount + 1;
+	jsRequest.request = request;
+
+	jsRequest.parsed = JS_NewObject(QWS.serverContext);
+
+
+	// Getting URL 
+	http_string_t target = http_request_target(request);
+	char url[target.len];
+	stringSlice(url, target.buf, target.len);
+	JS_DefinePropertyValueStr(QWS.serverContext, jsRequest.parsed, "url",
+                                  JS_NewString(QWS.serverContext, url),
+                                  JS_PROP_C_W_E);
+
+	// Getting request method
+	http_string_t method = http_request_method(request);
+	char request_method[method.len];
+	stringSlice(request_method, method.buf, method.len);
+	JS_DefinePropertyValueStr(QWS.serverContext, jsRequest.parsed, "method",
+                                  JS_NewString(QWS.serverContext, request_method),
+                                  JS_PROP_C_W_E);
+
+	// Getting all the headers
+	JSValue headersObject;
+	headersObject = JS_NewObject(QWS.serverContext);
+	http_string_t key, val;
+	int iter = 0;
+	while (http_request_iterate_headers(request, &key, &val, &iter)) {
+	    char header_key[key.len + 1], header_value[val.len + 1];
+	    char *header_key_p = header_key;
+	    char *header_value_p = header_value;
+	    stringSlice(header_key_p, key.buf, key.len);
+	    stringSlice(header_value_p, val.buf, val.len);
+		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
+								  JS_NewString(QWS.serverContext, header_value),
+								  JS_PROP_C_W_E);
+	}
+	JS_DefinePropertyValueStr(QWS.serverContext, jsRequest.parsed, "headers", headersObject, JS_PROP_C_W_E);
+
+	ARRAY_PUSH(serverRequests, jsRequest);
+	QWS.requestsCount++;
+
+	// Getting request body
+	getRequestBody(request, jsRequest.reqId);
 }
 
 /**
@@ -221,7 +205,7 @@ static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSVa
 	int port;
 	JS_ToInt32(ctx, &port, argv[1]);
 
-  	struct http_server_s* server = http_server_init(port, requestCallback);
+  	struct http_server_s* server = http_server_init(port, parseRequest);
 	http_server_listen(server);
 
 	return JS_NewInt32(ctx, 0);
