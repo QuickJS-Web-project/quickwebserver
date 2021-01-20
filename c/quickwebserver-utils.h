@@ -8,6 +8,18 @@ typedef struct {
     unsigned long size;
 } FileData;
 
+typedef struct {
+    char *data;
+    size_t capacity;
+    size_t size;
+} string_array;
+
+typedef struct {
+    size_t *data;
+    size_t capacity;
+    size_t size;
+} size_t_array;
+
 /**
  * For next 3 defines special thanks to https://github.com/andrei-markeev/ts2c
  */ 
@@ -37,6 +49,14 @@ typedef struct {
 void stringSlice(char *dest, const char *source, int length) {
 	memcpy(dest, source, length);
 	dest[length] = '\0';
+}
+
+void slice_str(const char *str, char *buffer, size_t start, size_t end) {
+    size_t j = 0;
+    for ( size_t i = start; i <= end; ++i ) {
+        buffer[j++] = str[i];
+    }
+    buffer[j] = 0;
 }
 
 void readFile(FileData *file, const char *path) {
@@ -147,4 +167,53 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
   free(filename);
   free(boundary);
 
+}
+
+void parseMultipartBody(const char *buffer, size_t buf_length, const char *content_type) {
+  char *boundary = cut_string(content_type, "boundary=", '\n');
+
+  // Closing boundary has "--" added to beginning and ending
+  char b_end[strlen(boundary) + 5];
+  snprintf(b_end, sizeof b_end, "%s%s%s", "--", boundary, "--");
+  char *b_end_p = b_end;
+
+  char b_start[strlen(boundary) + 3];
+  snprintf(b_start, sizeof b_start, "%s%s", "--", boundary);
+  char *b_start_p = b_start;
+
+  size_t_array *content_beginnings;
+  size_t_array *content_endings; 
+
+  ARRAY_CREATE(content_beginnings, 2, 0);
+  ARRAY_CREATE(content_endings, 2, 0);
+
+  size_t loop_idx = 0;
+  size_t boundary_start = 0;
+  while (loop_idx <= buf_length)
+  {
+    char byte_v = buffer[loop_idx];
+
+    if (boundary_start == 0 && byte_v == b_start_p[0]) {
+      boundary_start = loop_idx;
+    }
+
+    int pos = loop_idx - boundary_start;
+
+    if (pos <= strlen(b_start_p) && b_start_p[pos] && b_start_p[pos] == byte_v) {
+      if (loop_idx - boundary_start == strlen(b_start_p) - 1) {
+        if (boundary_start != 0) ARRAY_PUSH(content_endings, boundary_start - 2);
+        ARRAY_PUSH(content_beginnings, loop_idx + 3);
+      }
+    } else {
+      boundary_start = 0;
+    }
+    loop_idx++;
+  }
+
+  for (int i = 0; i < content_endings->size; i++) {
+    int contentLength = content_endings->data[i] - content_beginnings->data[i];
+    char contentBlock[contentLength];
+    slice_str(buffer, contentBlock, content_beginnings->data[i], content_endings->data[i]);
+    printf("%s\n::\n", contentBlock);
+  }
 }

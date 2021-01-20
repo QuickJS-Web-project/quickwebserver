@@ -85,6 +85,12 @@ void getRequestBody(struct http_request_s* request, int requestId) {
 	stringSlice(request_content_type, contentTypeHeader.buf, contentTypeHeader.len);
     short is_form_data = strstr(request_content_type_p, "multipart/form-data") != NULL;
 
+    http_string_t contentLengthHeader = http_request_header(request, "Content-Length");
+    char request_content_length[contentLengthHeader.len];
+    stringSlice(request_content_length, contentLengthHeader.buf, contentLengthHeader.len);
+    char *request_content_length_p = request_content_length, *end;
+    long int content_length = strtol(request_content_length_p, &end, 10);
+
     if (http_request_has_flag(request, HTTP_FLG_STREAMED)) {
         // @todo write for
     } else {
@@ -92,7 +98,8 @@ void getRequestBody(struct http_request_s* request, int requestId) {
         JSRequest *req = getRequestById(requestId, serverRequests, &requestIndex);
         http_string_t body = http_request_body(request);
         if (is_form_data && body.len != 0) {
-            getMultipartFile(body.buf, body.len, request_content_type_p);
+            // getMultipartFile(body.buf, body.len, request_content_type_p);
+            parseMultipartBody(body.buf, content_length, request_content_type_p);
         } else {
             JS_DefinePropertyValueStr(QWS.serverContext, req->parsed, "body",
                                 JS_NewString(QWS.serverContext, body.buf),
