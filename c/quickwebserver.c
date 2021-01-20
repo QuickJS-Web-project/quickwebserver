@@ -115,7 +115,7 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
  * Parsing is done: time to pass data to JS
  * 
  */ 
-void requestCallback(struct http_request_s* request, int reqId) {
+void requestCallback(int reqId) {
 	JSValue cbFunc, cbReturnValue;
 
 	int reqIdx = 0;

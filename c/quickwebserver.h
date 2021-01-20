@@ -11,7 +11,7 @@
 JSModuleDef *JS_INIT_MODULE(JSContext *ctx, const char *module_name);
 static int js_quickwebserver_init(JSContext *ctx, JSModuleDef *m);
 static JSValue startServer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
-void requestCallback(struct http_request_s* request, int reqId);
+void requestCallback(int reqId);
 static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 void response(struct http_request_s* request, JSValue jsHandlerData, JSContext *ctx);
 void acceptHttpHeaders(struct http_response_s *response, JSValue headers, JSContext *ctx);
@@ -79,15 +79,25 @@ void createFileResponse(QWSResponseBody *response, const char *filePath) {
 }
 
 void getRequestBody(struct http_request_s* request, int requestId) {
+    http_string_t contentTypeHeader = http_request_header(request, "Content-Type");
+	char request_content_type[contentTypeHeader.len];
+	const char *request_content_type_p = request_content_type;
+	stringSlice(request_content_type, contentTypeHeader.buf, contentTypeHeader.len);
+    short is_form_data = strstr(request_content_type_p, "multipart/form-data") != NULL;
+
     if (http_request_has_flag(request, HTTP_FLG_STREAMED)) {
         // @todo write for
     } else {
         int requestIndex;
         JSRequest *req = getRequestById(requestId, serverRequests, &requestIndex);
         http_string_t body = http_request_body(request);
-        JS_DefinePropertyValueStr(QWS.serverContext, req->parsed, "body",
+        if (is_form_data && body.len != 0) {
+            getMultipartFile(body.buf, body.len, request_content_type_p);
+        } else {
+            JS_DefinePropertyValueStr(QWS.serverContext, req->parsed, "body",
                                 JS_NewString(QWS.serverContext, body.buf),
                                 JS_PROP_C_W_E);
-        requestCallback(request, requestId);
+        }
+        requestCallback(requestId);
     }
 }
