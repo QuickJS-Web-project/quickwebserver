@@ -86,11 +86,8 @@ char *cut_string(const char *buffer, const char *start_from, char end_char) {
 }
 
 void getMultipartFile(const char *buffer, size_t buf_length, const char *content_type) {
-  printf("%s\n", content_type);
-
   char *boundary = cut_string(content_type, "boundary=", '\n');
-
-  printf("Boundary: %s\n", boundary);
+  char *filename;
 
   // Closing boundary has "--" added to beginning and ending
   char b_end[strlen(boundary) + 5];
@@ -101,6 +98,13 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
   short content_next = 0;
   while(ptr != NULL)
 	{
+    char *filenameString = strstr(ptr, "filename");
+    if (filenameString) {
+      char *filename_temp = cut_string(filenameString, "filename=\"", '"');
+      filename = malloc(sizeof(char *) * strlen(filename_temp));
+      strcpy(filename, filename_temp);
+      free(filename_temp);
+    }
     if (strlen(ptr) == 1 && (ptr[0] == '\r' || ptr[0] == '\n')) {
       content_next = 1;
     }
@@ -131,12 +135,16 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
     i++;
   }
 
-  printf("File end: %d\n", file_end);
+  printf("File end: %zu\n", file_end);
 
   // @todo: real file name
-  FILE *resFile = fopen("./test.png", "wb");
+  FILE *resFile = fopen(filename, "wb");
   for (int i = 2; i < file_end ; i++) {
     fputc(ptr[i], resFile);
   }
   fclose(resFile);
+
+  free(filename);
+  free(boundary);
+
 }
