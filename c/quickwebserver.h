@@ -93,13 +93,22 @@ void getRequestBody(struct http_request_s* request, int requestId) {
 
     if (http_request_has_flag(request, HTTP_FLG_STREAMED)) {
         // @todo write for
+        printf("Chunked!\n");
     } else {
         int requestIndex;
         JSRequest *req = getRequestById(requestId, serverRequests, &requestIndex);
         http_string_t body = http_request_body(request);
         if (is_form_data && body.len != 0) {
-            // getMultipartFile(body.buf, body.len, request_content_type_p);
-            parseMultipartBody(body.buf, content_length, request_content_type_p);
+            key_value_array *body_arr = parseMultipartBody(body.buf, content_length, request_content_type_p);
+            JSValue js_body = JS_NewObject(QWS.serverContext);
+            for (int i = 0; i < body_arr->size; i++) {
+                JS_DefinePropertyValueStr(QWS.serverContext, js_body, body_arr->data[i].key, 
+                                JS_NewString(QWS.serverContext, body_arr->data[i].value), 
+                                JS_PROP_C_W_E);
+            }
+            JS_DefinePropertyValueStr(QWS.serverContext, req->parsed, "body",
+                                js_body,
+                                JS_PROP_C_W_E);
         } else {
             JS_DefinePropertyValueStr(QWS.serverContext, req->parsed, "body",
                                 JS_NewString(QWS.serverContext, body.buf),

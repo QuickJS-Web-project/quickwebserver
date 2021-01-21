@@ -168,6 +168,7 @@ void parseRequest(struct http_request_s* request) {
 	    char *header_value_p = header_value;
 	    stringSlice(header_key_p, key.buf, key.len);
 	    stringSlice(header_value_p, val.buf, val.len);
+		if (strlen(header_key_p) == 0 && strlen(header_value_p) == 0) break;
 		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
 								  JS_NewString(QWS.serverContext, header_value),
 								  JS_PROP_C_W_E);

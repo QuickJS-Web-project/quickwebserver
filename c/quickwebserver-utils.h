@@ -20,6 +20,17 @@ typedef struct {
     size_t size;
 } size_t_array;
 
+typedef struct {
+  char *key;
+  char *value;
+} key_value_t;
+
+typedef struct {
+  key_value_t *data;
+  size_t capacity;
+  size_t size;
+} key_value_array;
+
 /**
  * For next 3 defines special thanks to https://github.com/andrei-markeev/ts2c
  */ 
@@ -49,14 +60,6 @@ typedef struct {
 void stringSlice(char *dest, const char *source, int length) {
 	memcpy(dest, source, length);
 	dest[length] = '\0';
-}
-
-void slice_str(const char *str, char *buffer, size_t start, size_t end) {
-    size_t j = 0;
-    for ( size_t i = start; i <= end; ++i ) {
-        buffer[j++] = str[i];
-    }
-    buffer[j] = 0;
 }
 
 void readFile(FileData *file, const char *path) {
@@ -105,14 +108,16 @@ char *cut_string(const char *buffer, const char *start_from, char end_char) {
   return result;
 }
 
-void getMultipartFile(const char *buffer, size_t buf_length, const char *content_type) {
-  char *boundary = cut_string(content_type, "boundary=", '\n');
-  char *filename;
+void slice_str(const char *str, char *buffer, size_t start, size_t end) {
+    size_t j = 0;
+    for ( size_t i = start; i <= end; ++i ) {
+        buffer[j++] = str[i];
+    }
+    buffer[j] = 0;
+}
 
-  // Closing boundary has "--" added to beginning and ending
-  char b_end[strlen(boundary) + 5];
-  snprintf(b_end, sizeof b_end, "%s%s%s", "--", boundary, "--");
-  char *boundary_closing = b_end;
+char *getMultipartFile(const char *buffer, size_t buf_length, char *boundary, char *boundary_closing) {
+  char *filename;
 
   char *ptr = strtok((char *)buffer, "\r\n");
   short content_next = 0;
@@ -121,7 +126,7 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
     char *filenameString = strstr(ptr, "filename");
     if (filenameString) {
       char *filename_temp = cut_string(filenameString, "filename=\"", '"');
-      filename = malloc(sizeof(char *) * strlen(filename_temp));
+      filename = malloc(strlen(filename_temp));
       strcpy(filename, filename_temp);
       free(filename_temp);
     }
@@ -155,27 +160,19 @@ void getMultipartFile(const char *buffer, size_t buf_length, const char *content
     i++;
   }
 
-  printf("File end: %zu\n", file_end);
+  // printf("\nFile end: %zu\n", file_end);
 
-  // @todo: real file name
   FILE *resFile = fopen(filename, "wb");
   for (int i = 2; i < file_end ; i++) {
     fputc(ptr[i], resFile);
   }
   fclose(resFile);
-
-  free(filename);
-  free(boundary);
-
+  
+  return filename;
 }
 
-void parseMultipartBody(const char *buffer, size_t buf_length, const char *content_type) {
+key_value_array *parseMultipartBody(const char *buffer, size_t buf_length, const char *content_type) {
   char *boundary = cut_string(content_type, "boundary=", '\n');
-
-  // Closing boundary has "--" added to beginning and ending
-  char b_end[strlen(boundary) + 5];
-  snprintf(b_end, sizeof b_end, "%s%s%s", "--", boundary, "--");
-  char *b_end_p = b_end;
 
   char b_start[strlen(boundary) + 3];
   snprintf(b_start, sizeof b_start, "%s%s", "--", boundary);
@@ -201,7 +198,7 @@ void parseMultipartBody(const char *buffer, size_t buf_length, const char *conte
 
     if (pos <= strlen(b_start_p) && b_start_p[pos] && b_start_p[pos] == byte_v) {
       if (loop_idx - boundary_start == strlen(b_start_p) - 1) {
-        if (boundary_start != 0) ARRAY_PUSH(content_endings, boundary_start - 2);
+        if (boundary_start != 0) ARRAY_PUSH(content_endings, boundary_start + strlen(b_start_p));
         ARRAY_PUSH(content_beginnings, loop_idx + 3);
       }
     } else {
@@ -210,10 +207,44 @@ void parseMultipartBody(const char *buffer, size_t buf_length, const char *conte
     loop_idx++;
   }
 
+  key_value_array *body_arr;
+  ARRAY_CREATE(body_arr, 2, 0);
+
   for (int i = 0; i < content_endings->size; i++) {
-    int contentLength = content_endings->data[i] - content_beginnings->data[i];
-    char contentBlock[contentLength];
+    size_t contentLength = content_endings->data[i] - content_beginnings->data[i];
+    char *contentBlock = malloc(contentLength);
     slice_str(buffer, contentBlock, content_beginnings->data[i], content_endings->data[i]);
-    printf("%s\n::\n", contentBlock);
+    if (strstr(contentBlock, "filename")) {
+      char fkey[10];
+      snprintf(fkey, sizeof fkey, "%s%d", "file", i);
+
+      key_value_t file_object; 
+      file_object.key = malloc(strlen(fkey));
+      strcpy(file_object.key, fkey);
+      file_object.value = getMultipartFile(contentBlock, contentLength, boundary, b_start_p);
+      file_object.key[strlen(file_object.key)] = '\0';
+      ARRAY_PUSH(body_arr, file_object);
+    } else {
+      char *key = cut_string(contentBlock, "name=\"", '"');
+      key[strlen(key)] = '\0';
+      char *value = strtok(contentBlock, "\n");
+      while (1)
+      {
+        if (value[0] == 13 || value[0] == 10) {
+          value = strtok(NULL, "\n");
+          break;
+        }
+        value = strtok(NULL, "\n");
+      }
+      
+      value[strlen(value) - 1] = '\0';
+
+      key_value_t field_object;
+      field_object.key = key;
+      field_object.value = value;
+      ARRAY_PUSH(body_arr, field_object);
+    }
   }
+
+  return body_arr;
 }
