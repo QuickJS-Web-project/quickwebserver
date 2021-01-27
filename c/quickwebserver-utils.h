@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define RATTUS_LOGGING 0
+
+
 typedef struct {
     char *buffer;
     unsigned long size;
@@ -160,8 +163,6 @@ char *getMultipartFile(const char *buffer, size_t buf_length, char *boundary, ch
     i++;
   }
 
-  // printf("\nFile end: %zu\n", file_end);
-
   FILE *resFile = fopen(filename, "wb");
   for (int i = 2; i < file_end ; i++) {
     fputc(ptr[i], resFile);
@@ -172,7 +173,7 @@ char *getMultipartFile(const char *buffer, size_t buf_length, char *boundary, ch
 }
 
 key_value_array *parseMultipartBody(const char *buffer, size_t buf_length, const char *content_type) {
-  char *boundary = cut_string(content_type, "boundary=", '\n');
+  char *boundary = cut_string(content_type, "boundary=", '\0');
 
   char b_start[strlen(boundary) + 3];
   snprintf(b_start, sizeof b_start, "%s%s", "--", boundary);
@@ -244,7 +245,14 @@ key_value_array *parseMultipartBody(const char *buffer, size_t buf_length, const
       field_object.value = value;
       ARRAY_PUSH(body_arr, field_object);
     }
+    free(contentBlock);
   }
 
   return body_arr;
+}
+
+void print_log(const char *message) {
+  if (RATTUS_LOGGING) {
+    printf("%s", message);
+  }
 }

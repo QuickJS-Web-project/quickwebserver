@@ -106,7 +106,7 @@ static JSValue serverRespond(JSContext *ctx, JSValueConst this_val, int argc, JS
 	serverRequest = request->request;
 	response(serverRequest, argv[1], ctx);
 
-	ARRAY_REMOVE(serverRequests, requestIndex, 1);
+	// ARRAY_REMOVE(serverRequests, requestIndex, 1);
 
 	return JS_NewInt32(ctx, 0);
 }
@@ -131,14 +131,22 @@ void requestCallback(int reqId) {
 	JS_FreeValue(QWS.serverContext, cbFunc);
 	JS_FreeValue(QWS.serverContext, cbReturnValue);
 	JS_FreeValue(QWS.serverContext, requestId);
+	JS_FreeValue(QWS.serverContext, req->parsed);
 }
 
 void parseRequest(struct http_request_s* request) {
+	print_log("Enter parse!\n");
+
 	JSRequest jsRequest;
 	jsRequest.reqId = QWS.requestsCount + 1;
 	jsRequest.request = request;
 
+	print_log("Request obj created!\n");
+
+
 	jsRequest.parsed = JS_NewObject(QWS.serverContext);
+
+	print_log("Parsed obj created!\n");
 
 
 	// Getting URL 
@@ -149,6 +157,8 @@ void parseRequest(struct http_request_s* request) {
                                   JS_NewString(QWS.serverContext, url),
                                   JS_PROP_C_W_E);
 
+	print_log("Got url!\n");
+
 	// Getting request method
 	http_string_t method = http_request_method(request);
 	char request_method[method.len];
@@ -157,29 +167,37 @@ void parseRequest(struct http_request_s* request) {
                                   JS_NewString(QWS.serverContext, request_method),
                                   JS_PROP_C_W_E);
 
+	print_log("Got method!\n");
+
 	// Getting all the headers
 	JSValue headersObject;
 	headersObject = JS_NewObject(QWS.serverContext);
 	http_string_t key, val;
 	int iter = 0;
 	while (http_request_iterate_headers(request, &key, &val, &iter)) {
+		if (key.len <= 0) break;
 	    char header_key[key.len + 1], header_value[val.len + 1];
 	    char *header_key_p = header_key;
 	    char *header_value_p = header_value;
 	    stringSlice(header_key_p, key.buf, key.len);
 	    stringSlice(header_value_p, val.buf, val.len);
-		if (strlen(header_key_p) == 0 && strlen(header_value_p) == 0) break;
 		JS_DefinePropertyValueStr(QWS.serverContext, headersObject, header_key,
 								  JS_NewString(QWS.serverContext, header_value),
 								  JS_PROP_C_W_E);
 	}
 	JS_DefinePropertyValueStr(QWS.serverContext, jsRequest.parsed, "headers", headersObject, JS_PROP_C_W_E);
 
+	print_log("Got headers!\n");
+
 	ARRAY_PUSH(serverRequests, jsRequest);
 	QWS.requestsCount++;
 
+	print_log("Request pushed!\n");
+
 	// Getting request body
 	getRequestBody(request, jsRequest.reqId);
+
+	print_log("Send to body parsing!\n");
 }
 
 /**
