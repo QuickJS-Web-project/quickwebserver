@@ -1,3 +1,6 @@
+### v0.0.3
+* bugfix: upgrade to regexparam 2.0.0.
+
 ### v0.0.2
 * **feat**: automated body parsing for `application/json`
 and `application/x-www-form-urlencoded`;
