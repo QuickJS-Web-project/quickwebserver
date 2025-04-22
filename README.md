@@ -1,6 +1,9 @@
 # QuickWebServer
 ### Implementation of HTTP web server in the QuickJS Runtime
 
+> [!WARNING]  
+> This project is not being maintained. It is very likely that issues will not be fixed. Feel free to make a fork or just use the codebase for your own tasks.
+
 **[QuickJS](https://bellard.org/quickjs/)** (&copy; Fabrice Bellard and Charlie Gordon) is a small 
 and embeddable Javascript engine. It supports the ES2020 specification including modules, 
 asynchronous generators, proxies and BigInt.
